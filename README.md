@@ -206,4 +206,173 @@ server 'example.com', user: 'deploy', roles: %w{web app}, my_property: :my_value
 
 Change web, app and db with yor server address.
 
-### 5 Preparing the server
+
+## Step 2 — Preparing the server
+
+#### Create instance
+Create an instance of the server and setup required users.
+
+We need to setup a basic directory structure on the server, create initial configuration files and configure Passenger.
+
+Please login to your server as an administrator, then follow the following instructions.
+
+Update the existing packages first:
+
+```
+sudo apt-get update && sudo apt-get -y upgrade
+```
+
+#### Install Git
+
+Git is required for automated deployments via Capistrano, so install Git on the server:
+```
+sudo apt-get install git
+```
+
+#### Setting up a basic directory structure
+Run the following commands on the server to setup a basic directory structure that Capistrano can work with.
+
+```
+sudo mkdir -p /www/myapp/shared
+```
+
+#### Install Ruby with RVM
+```
+curl -L get.rvm.io | bash -s stable
+source ~/.rvm/scripts/rvm
+rvmsudo /usr/bin/apt-get install build-essential openssl libreadline6 libreadline6-dev curl git-core zlib1g zlib1g-dev libssl-dev libyaml-dev libsqlite3-dev sqlite3 libxml2-dev libxslt-dev autoconf libc6-dev ncurses-dev automake libtool bison subversion
+
+rvm install 2.2.1
+rvm use 2.2.1 --default
+
+rvm rubygems current
+```
+#### Install Rails
+Install bundler and rails
+```
+gem install bundler --no-ri --no-rdoc
+gem install rails
+```
+
+#### Install Passenger
+```
+gem install passenger 
+```
+
+#### Install nginx
+```
+rvmsudo passenger-install-nginx-module
+```
+And now Passenger takes over.
+
+Passenger first checks that all of the dependancies it needs to work are installed. If you are missing any, Passenger will let you know how to install them, either with the apt-get installer on Ubuntu.
+
+After you download any missing dependancies, restart the installation. Type: passenger-install-nginx-module once more into the command line.
+
+Passenger offers users the choice between an automated setup or a customized one. Press 1 and enter to choose the recommended, easy, installation.
+
+#### Start nginx
+Passenger will take about five to ten minutes to install, configure, and optimize nginx with Ruby on Rails.
+
+After it finishes, it will let you know about changes made to the nginx configuration file and how to deploy a Ruby on Rails application on your virtual server.
+
+The last step is to turn start nginx, as it does not do so automatically.
+
+```
+sudo service nginx start 
+```
+
+nginx is now on. You can see the exciting “Welcome to nginx” screen in your browser if you point it toward http://youripaddress/
+
+#### Connect Nginx to Your Rails Project
+
+Once you have rails installed, open up the nginx config file
+
+```
+sudo vi /etc/nginx/conf/nginx.conf
+```
+Set the root to the public directory of your new rails project.
+
+Your config should then look something like this:
+
+```
+server { 
+listen 80; 
+server_name example.com; 
+passenger_enabled on; 
+root /www/myapp/public; 
+}
+```
+
+Install NodeJs if you do not yet have it:
+```
+sudo apt-get install nodejs
+```
+
+#### Installing PostgreSQL
+```
+sudo apt-get install postgresql postgresql-contrib libpq-dev
+```
+
+After postgreSQL is installted, create a production database and its user:
+```
+sudo -u postgres createuser -s myapp
+```
+
+Set the user’s password from psql console:
+```
+sudo -u postgres psql
+```
+
+After logging into the console, change the password:
+```
+postgres=# \password myapp
+```
+
+Enter your new password and confirm it. Exit the console with \q. It’s time to create a database for our application:
+```
+sudo -u postgres createdb -O myapp myapp_production
+```
+
+#### Configuration files
+```
+sudo mkdir -p /www/myapp/shared/config
+vi /var/www/myapp/shared/config/database.yml
+````
+
+Paste the following in database.yml:
+```
+production:
+  adapter: postgresql
+  encoding: unicode
+  database: myapp_production
+  username: myapp
+  password: myapp
+  host: localhost
+  port: 5432
+
+```
+
+After that, create secrets.yml
+```
+vi /var/www/myapp/shared/config/secrets.yml
+```
+and add the following:
+```
+SECRET_KEY_BASE: "70c90ed6d8912f3ab8a8bc1e3da0935377c2617cba19ccbe360f0b1e0aabd8809c0cdca6eb2ff8e070f45138c623cbabebeb335a03791d426df7be6f8b7bfd5e"
+```
+
+Change the secret to a new secret using the rake secret command.
+
+We’re almost done with the server. Go back to local machine to start deployment with Capistrano.
+```
+cap production deploy
+```
+
+Since this is the first deployment, Capistrano will create all the necessary directories and files on the server, which may take some time. Capistrano will deploy the application, migrate the database, and start the application server. Now, login to the server and restart nginx so that our new configuration will reloaded:
+
+```
+sudo service nginx restart
+```
+
+Open up the browser and point it to ip. The application should be working now :)
