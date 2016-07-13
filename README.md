@@ -337,7 +337,7 @@ sudo -u postgres createdb -O myapp myapp_production
 #### Configuration files
 ```
 sudo mkdir -p /www/myapp/shared/config
-vi /var/www/myapp/shared/config/database.yml
+vi /www/myapp/shared/config/database.yml
 ````
 
 Paste the following in database.yml:
@@ -355,7 +355,7 @@ production:
 
 After that, create secrets.yml
 ```
-vi /var/www/myapp/shared/config/secrets.yml
+vi /www/myapp/shared/config/secrets.yml
 ```
 and add the following:
 ```
